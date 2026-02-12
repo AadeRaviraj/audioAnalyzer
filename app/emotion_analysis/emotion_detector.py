@@ -1,22 +1,23 @@
-from transformers import pipeline
+import torch
+from transformers import AutoTokenizer, AutoModelForSequenceClassification
+import torch.nn.functional as F
 
-emotion_model = pipeline("sentiment-analysis",   model="j-hartmann/emotion-english-distilroberta-base")
+model_name = "j-hartmann/emotion-english-distilroberta-base"
 
-emotion_pipe = pipeline(
-    "audio-classification",
-    model="superb/hubert-large-superb-er",
-    device=-1 
-)
+tokenizer = AutoTokenizer.from_pretrained(model_name)
+model = AutoModelForSequenceClassification.from_pretrained(model_name)
+
+model.eval()  # very important
 
 def detect_emotion(text):
     if text.strip() == "":
         return "Neutral"
 
-    result = emotion_model(text)[0]
-    return result["label"]
+    inputs = tokenizer(text, return_tensors="pt", truncation=True)
 
+    with torch.no_grad():
+        outputs = model(**inputs)
+        probs = F.softmax(outputs.logits, dim=1)
+        predicted_class_id = torch.argmax(probs).item()
 
-
-def detect_voice_emotion(audio_file):
-    result_emotion = emotion_pipe(audio_file)
-    return result_emotion[0]["label"]
+    return model.config.id2label[predicted_class_id]
