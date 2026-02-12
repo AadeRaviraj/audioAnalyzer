@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Voice Emotion Analyzer</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+</head>
+<body>
+
+    <div class="container">
+
+        <!-- Header -->
+        <h1> Voice Emotion Analyzer</h1>
+        <hr>
+    
+        <div class="card">
+  
+
+            <form id="uploadForm" enctype="multipart/form-data">
+            <input type="file" name="audio_file" accept="audio/*" required>
+            <br><br>
+            <button type="submit">Upload</button>
+</form>
+
+        </div>
+
+
+        <!-- Play Audio -->
+        <div class="card">
+            <h3>Play Uploaded Audio:</h3>
+            <audio id="audio" controls style="display:none;">
+                <source id="audioSource" src="">
+                Your browser does not support the audio element.
+            </audio>
+        </div>
+        <!--reconized text -->
+        <div class="card">
+            <h3>Recognized Text:</h3>
+            <p class="text-output" id="recognizedText">
+                —
+            </p>
+        </div>
+
+        <!-- Current Emotion -->
+        <!-- 
+        <div class="card">
+            <h3>Current Emotion:</h3>
+            <p class="emotion" id="currentEmotion">
+                —
+            </p>
+        </div> -->
+
+        <!-- Emotion Log Table -->
+        <h2> Emotion Log Table</h2>
+        <table>
+            <thead>
+                <tr>
+                    <th>Time</th>
+                    <th>Emotion</th>
+                </tr>
+            </thead>
+            <tbody id="emotionTableBody">
+            </tbody>
+        </table>
+
+        <hr>
+
+        <!-- Emotion Timeline Chart Placeholder -->
+        <h2> Emotion Timeline Chart</h2>
+        <div class="chart-box">
+        <canvas id="emotionChart"></canvas>
+        </div>
+
+        <hr>
+
+
+
+    </div>
+
+
+
+<script>
+
+let emotionChart = null;
+
+function drawEmotionChart(emotions) {
+
+    const labels = emotions.map(e => e.time);
+    const emotionMap = {
+        joy: 5,
+        surprise: 4,
+        anger: 3,
+        sadness: 2,
+        fear: 1,
+        neutral: 0
+    };
+
+    const values = emotions.map(e => emotionMap[e.emotion] ?? 0);
+
+    const ctx = document.getElementById("emotionChart");
+
+    if (emotionChart) {
+        emotionChart.destroy(); // clear old chart
+    }
+
+    emotionChart = new Chart(ctx, {
+        type: "line",
+        data: {
+            labels: labels,
+            datasets: [{
+                label: "Emotion Timeline",
+                data: values,
+                fill: false,
+                tension: 0.3
+            }]
+        },
+        options: {
+            scales: {
+                y: {
+                    ticks: {
+                        callback: function(value) {
+                            return Object.keys(emotionMap).find(k => emotionMap[k] === value);
+                        }
+                    }
+                }
+            }
+        }
+    });
+}
+
+document.getElementById("uploadForm").addEventListener("submit", function(e) {
+    e.preventDefault(); // prevent normal form submit
+
+    let formData = new FormData(this);
+
+    fetch("/upload", {
+        method: "POST",
+        body: formData
+    })
+    .then(res => res.json())
+    .then(data => {
+        console.log("Upload response:", data);
+            //play audio
+        if (data.play_url) {
+            const audio = document.getElementById("audio");
+            const source = document.getElementById("audioSource");
+
+            source.src = data.play_url; // set uploaded file URL
+            audio.load();               // reload audio element
+            audio.style.display = "block"; // show player
+        } else if (data.error) {
+            alert("Upload error: " + data.error);
+        }
+        //show reconized text
+        if (data.transcription && data.transcription.length > 0) {
+            const fullText = data.transcription
+                .map(item => item.text)
+                .join(" ");
+
+            document.getElementById("recognizedText").innerText = fullText;
+        }
+
+        /*  Show current emotion (last detected) 
+        if (data.emotions && data.emotions.length > 0) {
+            const lastEmotion =
+                data.emotions[data.emotions.length - 1].emotion;
+
+            document.getElementById("currentEmotion").innerText =
+                lastEmotion.toUpperCase();
+        }*/
+
+        //Emotion table 
+        const tableBody = document.getElementById("emotionTableBody");
+        tableBody.innerHTML = "";
+
+        if (data.emotions) {
+            data.emotions.forEach(item => {
+                tableBody.innerHTML += `
+                    <tr>
+                        <td>${item.time}</td>
+                        <td>${item.emotion}</td>
+                    </tr>
+                `;
+            });
+        }
+
+        // emotion timeline   chart 
+        if (data.emotions) {
+            drawEmotionChart(data.emotions);
+        }
+
+
+    })
+    .catch(err => console.error(err));
+});
+</script>
+
+
+
+
+</body>
+</html>
