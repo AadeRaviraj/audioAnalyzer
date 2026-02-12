@@ -35,7 +35,7 @@ if uploaded_file is not None:
 
         transcription.append(text)
 
-        emotion = detect_emotion(text)
+        emotion = detect_emotion(text) #nlp transformer model used 
 
         emotion_log.append({
             "time": chunk["time"],
