@@ -4,7 +4,8 @@ emotion_model = pipeline("sentiment-analysis",   model="j-hartmann/emotion-engli
 
 emotion_pipe = pipeline(
     "audio-classification",
-    model="superb/hubert-large-superb-er"
+    model="superb/hubert-large-superb-er",
+    device=-1 
 )
 
 def detect_emotion(text):
