@@ -1,5 +1,6 @@
-streamlit
-transformers>=4.35
-torch>=2.1
+flask
+gunicorn
+transformers
+torch
 librosa
 faster-whisper==1.2.1
