@@ -3,3 +3,5 @@ gunicorn==25.0.3
 faster-whisper==1.2.1
 transformers==4.41.2
 librosa==0.11.0
+torch==2.2.2
+
